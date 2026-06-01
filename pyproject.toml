@@ -1,0 +1,30 @@
+[project]
+name = "tractor-watch"
+version = "0.1.0"
+description = "二手拖拉机价格追踪器 - 追踪拖拉机挂牌价格变化并发送通知"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "TractorWatch Team" }]
+
+dependencies = [
+    "httpx>=0.28",
+    "selectolax>=0.3",
+    "rich>=13",
+    "plotly>=5",
+    "pydantic>=2",
+    "pydantic-settings>=2",
+    "loguru>=0.7",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "jinja2>=3",
+]
+
+[project.scripts]
+tractor-watch = "tractor_watch.cli:app"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
