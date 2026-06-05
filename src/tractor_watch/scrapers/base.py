@@ -1,3 +1,4 @@
+import asyncio
 import random
 import time
 from abc import ABC, abstractmethod
@@ -13,13 +14,12 @@ class BaseScraper(ABC):
     def __init__(self, rate_limit: float = 2.0):
         self.rate_limit = rate_limit
         self.last_request = 0.0
-        self.session = None
 
-    def _respect_rate_limit(self):
-        elapsed = time.time() - self.last_request
+    async def _respect_rate_limit(self):
+        elapsed = time.monotonic() - self.last_request
         if elapsed < self.rate_limit:
-            time.sleep(self.rate_limit - elapsed + random.uniform(0, 1))
-        self.last_request = time.time()
+            await asyncio.sleep(self.rate_limit - elapsed + random.uniform(0, 1))
+        self.last_request = time.monotonic()
 
     def _random_ua(self) -> str:
         return random.choice(USER_AGENTS)

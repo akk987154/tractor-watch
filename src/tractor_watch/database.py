@@ -99,11 +99,10 @@ class Database:
                 return cursor.lastrowid
 
     def _create_alert(self, listing_id: int, old_price: float, new_price: float, conn: sqlite3.Connection):
-        now = datetime.now().isoformat()
         change_percent = round((new_price - old_price) / old_price * 100, 2)
         conn.execute(
-            "INSERT INTO alerts (listing_id, old_price, new_price, change_percent, notified_at) VALUES (?,?,?,?,?)",
-            (listing_id, old_price, new_price, change_percent, now),
+            "INSERT INTO alerts (listing_id, old_price, new_price, change_percent) VALUES (?,?,?,?)",
+            (listing_id, old_price, new_price, change_percent),
         )
 
     def get_all_listings(self, brand: str = "", source: str = "") -> list[dict]:
@@ -133,6 +132,30 @@ class Database:
                 (limit,),
             ).fetchall()
             return [dict(row) for row in rows]
+
+    def count_listings(self) -> int:
+        with self._connect() as conn:
+            row = conn.execute("SELECT COUNT(*) FROM listings").fetchone()
+            return row[0] if row else 0
+
+    def get_unnotified_alerts(self) -> list[dict]:
+        """Return alerts that have not yet been dispatched to notifiers."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                """SELECT a.*, l.brand, l.model, l.year, l.url, l.location, l.hours
+                   FROM alerts a JOIN listings l ON a.listing_id = l.id
+                   WHERE a.notified_at IS NULL
+                   ORDER BY a.id ASC""",
+            ).fetchall()
+            return [dict(row) for row in rows]
+
+    def mark_alert_notified(self, alert_id: int):
+        now = datetime.now().isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                "UPDATE alerts SET notified_at = ? WHERE id = ?",
+                (now, alert_id),
+            )
 
     def get_price_history(self, listing_id: int) -> list[dict]:
         listing = self.get_listing(listing_id)

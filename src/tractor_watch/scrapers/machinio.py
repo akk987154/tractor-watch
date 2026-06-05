@@ -23,7 +23,7 @@ class MachinioScraper(BaseScraper):
         return "Machinio"
 
     async def fetch_listings(self) -> list[TractorListing]:
-        self._respect_rate_limit()
+        await self._respect_rate_limit()
         logger.info("[Machinio] 正在获取挂牌信息...")
 
         listings: list[TractorListing] = []
