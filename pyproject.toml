@@ -3,7 +3,10 @@ name = "tractor-watch"
 version = "0.1.0"
 description = "二手拖拉机价格追踪器 - 追踪拖拉机挂牌价格变化并发送通知"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+# PEP 639 写法（hatchling >= 1.27 支持）。
+# 旧写法 license = { text = "MIT" } 已废弃，且无法把 LICENSE 文件打进分发包。
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "TractorWatch Team" }]
 
 # 这里的 `>=` 描述的是兼容范围，不是部署版本。
