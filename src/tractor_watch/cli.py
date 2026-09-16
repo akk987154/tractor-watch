@@ -1,12 +1,12 @@
 import asyncio
-import json
+
 from rich.console import Console
 from rich.table import Table
-from rich.panel import Panel
 from rich.text import Text
-from .database import Database
-from .tracker import Tracker
+
 from .config import settings
+from .database import Database, load_history
+from .tracker import Tracker
 
 console = Console()
 
@@ -31,13 +31,16 @@ async def cmd_track(once: bool = False):
     tracker = Tracker()
     if once:
         stats = await tracker.run_once()
-        console.print(f"[green]✅ 检查完成: 新增 {stats['new']}, 更新 {stats['updated']}, 异动 {stats['alerts']}[/green]")
+        console.print(
+            f"[green]✅ 检查完成: 新增 {stats['new']}, 更新 {stats['updated']}, "
+            f"异动 {stats['alerts']}, 发送失败 {stats['failed']}[/green]"
+        )
     else:
         await tracker.watch()
 
 def cmd_list():
-    db = Database(settings.database_url.replace("sqlite:///", ""))
-    listings = db.get_all_listings()
+    db = Database(settings.sqlite_path)
+    listings = db.get_all_listings(limit=500)
 
     table = Table(title="🚜 追踪拖拉机列表")
     table.add_column("ID", style="dim")
@@ -49,11 +52,11 @@ def cmd_list():
     table.add_column("位置")
     table.add_column("来源")
 
-    for l in listings:
-        price = f"¥{l['price']:,.0f}" if l["price"] else "N/A"
+    for row in listings:
+        price = f"¥{row['price']:,.0f}" if row["price"] else "N/A"
         price_color = "white"
-        if l.get("price_history"):
-            history = json.loads(l["price_history"])
+        if row.get("price_history"):
+            history = load_history(row["price_history"])
             if history:
                 last_change = history[-1]
                 if last_change["change_percent"] < 0:
@@ -62,16 +65,16 @@ def cmd_list():
                     price_color = "yellow"
 
         table.add_row(
-            str(l["id"]), l["brand"], l["model"], str(l["year"] or ""),
-            f"{l['hours']:,}" if l["hours"] else "",
+            str(row["id"]), row["brand"], row["model"], str(row["year"] or ""),
+            f"{row['hours']:,}" if row["hours"] else "",
             Text(price, style=price_color),
-            l["location"] or "", l["source"],
+            row["location"] or "", row["source"],
         )
 
     console.print(table)
 
 def cmd_alerts():
-    db = Database(settings.database_url.replace("sqlite:///", ""))
+    db = Database(settings.sqlite_path)
     alerts = db.get_alerts()
 
     table = Table(title="🚨 价格异动记录")
@@ -99,7 +102,7 @@ def cmd_chart(listing_id: int, output: str):
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
-    db = Database(settings.database_url.replace("sqlite:///", ""))
+    db = Database(settings.sqlite_path)
     listing = db.get_listing(listing_id)
     if not listing:
         console.print(f"[red]未找到 ID={listing_id} 的挂牌[/red]")
@@ -114,8 +117,11 @@ def cmd_chart(listing_id: int, output: str):
     prices = [h["price"] for h in history]
     changes = [h["change_percent"] for h in history]
 
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.7, 0.3],
-                        subplot_titles=(f"{listing['brand']} {listing['model']} 价格走势", "价格变化百分比"))
+    title = f"{listing['brand']} {listing['model']} 价格走势"
+    fig = make_subplots(
+        rows=2, cols=1, shared_xaxes=True, row_heights=[0.7, 0.3],
+        subplot_titles=(title, "价格变化百分比"),
+    )
 
     fig.add_trace(go.Scatter(x=dates, y=prices, mode="lines+markers",
                              name="价格", line=dict(color="green", width=2),

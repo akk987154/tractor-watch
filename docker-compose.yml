@@ -2,21 +2,36 @@ services:
   tracker:
     build: .
     restart: unless-stopped
+    # tracker 需要通知凭据，因此这里加载完整的 .env
     env_file: .env
     volumes:
       - ./data:/app/data
     environment:
       - DATABASE_URL=sqlite:///data/tractor_watch.db
     command: tractor-watch track
+    # tracker 不监听端口，无法做 HTTP 健康检查。
+    # 它的问题通过 /health 的 alerts_pending / alerts_failed 指标暴露。
 
   api:
     build: .
     restart: unless-stopped
     ports:
-      - "8080:8000"
-    env_file: .env
-    volumes:
-      - ./data:/app/data
+      # 原先写 "8080:8000"，裸 HOST:CONTAINER 会绑定到 0.0.0.0，
+      # 任何能访问该主机 8080 端口的人都能读取全部追踪数据。
+      # 这个 API 没有任何鉴权，因此默认只绑本机；
+      # 确需外部访问时请改为 127.0.0.1 之外的地址并自行加上反向代理与鉴权。
+      - "127.0.0.1:8080:8000"
+    # api 只读数据库，不需要 Telegram / Discord 凭据。
+    # 原先也加载了完整 .env，等于把通知密钥注入到一个对外暴露的容器里。
     environment:
       - DATABASE_URL=sqlite:///data/tractor_watch.db
+      - ENABLE_DOCS=${ENABLE_DOCS:-false}
+    volumes:
+      - ./data:/app/data
     command: uvicorn tractor_watch.web:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

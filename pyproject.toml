@@ -6,9 +6,10 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "TractorWatch Team" }]
 
+# 这里的 `>=` 描述的是兼容范围，不是部署版本。
+# 部署侧请使用 requirements.txt（版本已锁定，并逐个用 OSV 复核过）。
 dependencies = [
     "httpx>=0.28",
-    "selectolax>=0.3",
     "rich>=13",
     "plotly>=5",
     "pydantic>=2",
@@ -16,14 +17,36 @@ dependencies = [
     "loguru>=0.7",
     "fastapi>=0.115",
     "uvicorn>=0.32",
-    "jinja2>=3",
 ]
+
+# 已移除的两个依赖：
+#   jinja2   —— 全项目从未 import；它历史上多次出现沙箱逃逸类 CVE，
+#               为一个用不到的包承担补丁负担不划算
+#   selectolax —— 同样从未 import。等真正实现抓取时需要重新加回来
+#               （见 README 路线图"真抓取上线"）
 
 [project.scripts]
 tractor-watch = "tractor_watch.cli:app"
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+    # 只把本项目自己代码里的弃用告警升级为错误。
+    # 第三方库（anyio / starlette 等）的弃用告警不该让测试失败，
+    # 那些要等上游升级，不是我们能在本仓库修的。
+    "error::DeprecationWarning:tractor_watch",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
 
 [build-system]
 requires = ["hatchling"]

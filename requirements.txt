@@ -1,0 +1,20 @@
+# 运行时依赖（精确锁定）
+#
+# pyproject.toml 里用的是 `>=` 下限约束，这本身没错——它描述的是兼容范围。
+# 但下限约束会让每次构建解析出不同的依赖图，因此部署侧必须有一份锁定清单，
+# 否则今天能跑的镜像明天就可能因为某个传递依赖更新而行为不同。
+# 版本选择依据：逐个用 OSV.dev 查询确认在锁定版本上无已知 advisory。
+#
+# 更新流程：改 pyproject.toml 的范围 → 重新解析 → 用 pip-audit / OSV 复核 → 更新本文件。
+httpx==0.28.1
+rich==15.0.0
+plotly==7.1.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
+loguru==0.7.3
+fastapi==0.141.1
+uvicorn==0.53.0
+
+# 说明：原先还声明了 jinja2 与 selectolax，但代码中从未 import（见 git 历史）。
+# 两者已移除：未被使用的依赖只会扩大攻击面与补丁负担。
+# 将来实现真实抓取时需要重新引入 selectolax（HTML 解析）与 httpx（已在用）。

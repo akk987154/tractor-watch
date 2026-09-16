@@ -1,0 +1,35 @@
+# 构建上下文排除项。原仓库没有这个文件，
+# `docker build .` 会把 .env 与 .git 一并发送给 daemon。
+.git
+.gitignore
+.vscode
+.idea
+.DS_Store
+
+# 凭据文件绝不能进入构建上下文
+.env
+.env.*
+
+# 本地数据库与 WAL 副本
+data/
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# Python 缓存与虚拟环境
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# 文档与本地工具
+*.md
+.tools/
+
+# 测试产物
+.coverage
+coverage.*

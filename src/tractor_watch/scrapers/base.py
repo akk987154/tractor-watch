@@ -2,7 +2,6 @@ import asyncio
 import random
 import time
 from abc import ABC, abstractmethod
-from loguru import logger
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0",

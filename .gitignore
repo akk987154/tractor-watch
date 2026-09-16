@@ -1,9 +1,14 @@
 # Environment
 .env
+# `.env.*` 会连带忽略 .env.example，导致新克隆的仓库里没有配置模板，
+# README 里 `cp .env.example .env` 的指引直接失效，用户只能手写凭据文件。
 .env.*
+!.env.example
 
 # Database
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 
 # Python
@@ -14,6 +19,8 @@ dist/
 build/
 .venv/
 venv/
+.pytest_cache/
+.ruff_cache/
 
 # IDE
 .vscode/
